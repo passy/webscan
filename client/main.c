@@ -11,6 +11,10 @@
 #define DROP_USER_ID 1000
 #define DROP_GROUP_ID 1000
 
+struct ws_options {
+    bool verbose;
+};
+
 
 static char* lookup_device_name(void) {
     char *dev, errbuf[PCAP_ERRBUF_SIZE];
@@ -30,6 +34,7 @@ static char* lookup_device_name(void) {
  */
 static void drop_privileges(void) {
     cap_t caps;
+    // List of caps we need after the uid/gid changed.
     cap_value_t cap_list[] = {
         CAP_NET_RAW
     };
@@ -73,27 +78,33 @@ static void print_usage(const char *prog_name) {
 }
 
 
-int main(int argc, char *argv[]) {
-    char *dev;
+static struct ws_options parse_args(int argc, char *argv[]) {
     char arg;
-    bool verbose = false,
-         run = false;
-
-    // First action: get loose
-    drop_privileges();
+    struct ws_options options;
 
     while ((arg = getopt(argc, argv, "hv")) != -1) {
         switch (arg) {
             case 'v':
-                verbose = true;
+                options.verbose = true;
                 break;
         }
     }
 
-    if (run) {
-        dev = lookup_device_name();
-    } else {
-        print_usage(argv[0]);
+    return options;
+}
+
+
+int main(int argc, char *argv[]) {
+    char *dev;
+    struct ws_options options;
+
+    // First action: get loose
+    drop_privileges();
+    options = parse_args(argc, argv);
+
+    dev = lookup_device_name();
+    if (options.verbose) {
+        fprintf(stderr, "Using device %s\n", dev);
     }
     return EXIT_SUCCESS;
 }
