@@ -1,18 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <string.h>
 #include <unistd.h>
 #include <stdbool.h>
 #include <sys/capability.h>
 #include <sys/prctl.h>
 #include <pcap.h>
 
-// I'm not sure where to define this.
-#define DROP_USER_ID 1000
-#define DROP_GROUP_ID 1000
+#include "options.h"
+
 
 struct ws_options {
     bool verbose;
+    char hostname[WEBSCAN_TARGET_LENGTH];
 };
 
 
@@ -45,7 +46,7 @@ static void drop_privileges(void) {
         exit(EXIT_FAILURE);
     }
 
-    if (setegid(DROP_GROUP_ID) == -1 || seteuid(DROP_USER_ID) == -1) {
+    if (setegid(WEBSCAN_GROUP_ID) == -1 || seteuid(WEBSCAN_USER_ID) == -1) {
         perror("Dropping privileges failed");
         exit(EXIT_FAILURE);
     }
@@ -71,10 +72,10 @@ cleanup:
 
 
 static void print_usage(const char *prog_name) {
-    printf("OVERVIEW: %s\n\n", prog_name);
+    printf("OVERVIEW: %s [OPTIONS] TARGET\n\n", prog_name);
     printf("OPTIONS:\n" \
-           "-v:\tTurn on verbose mode.\n"
-           "-h:\tShow this help screen.\n");
+           "-v\tTurn on verbose mode.\n"
+           "-h\tShow this help screen.\n");
 }
 
 
@@ -90,6 +91,20 @@ static struct ws_options parse_args(int argc, char *argv[]) {
         }
     }
 
+    // getopt increments optind
+    if (optind >= argc) {
+        fprintf(stderr, "ERROR: Expected TARGET to come after options!\n");
+        print_usage(argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    strncpy(options.hostname, argv[optind], WEBSCAN_TARGET_LENGTH);
+    if (options.hostname[WEBSCAN_TARGET_LENGTH - 1] != '\0') {
+        fprintf(stderr, "ERROR: Hostname is too long, sorry. I suck at "
+                " C programming.\n");
+        exit(EXIT_FAILURE);
+    }
+
     return options;
 }
 
@@ -102,6 +117,7 @@ int main(int argc, char *argv[]) {
     drop_privileges();
     options = parse_args(argc, argv);
 
+    fprintf(stderr, "Running against target \"%s\".\n", options.hostname);
     dev = lookup_device_name();
     if (options.verbose) {
         fprintf(stderr, "Using device %s\n", dev);
