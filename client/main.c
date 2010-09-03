@@ -9,6 +9,7 @@
 #include <pcap.h>
 
 #include "options.h"
+#include "webscan.h"
 
 
 struct ws_options {
@@ -109,9 +110,28 @@ static struct ws_options parse_args(int argc, char *argv[]) {
 }
 
 
+static pcap_t *open_pcap(char *dev) {
+    pcap_t *handle;
+    char errbuf[PCAP_ERRBUF_SIZE];
+
+    handle = pcap_open_live(dev, BUFSIZ, false, WEBSCAN_PCAP_TIMEOUT, 
+            errbuf);
+
+    if (handle == NULL) {
+        fprintf(stderr, "Opening PCAP packet source failed: %s", errbuf);
+        exit(EXIT_FAILURE);
+    }
+
+    return handle;
+}
+
+
 int main(int argc, char *argv[]) {
     char *dev;
     struct ws_options options;
+    pcap_t *handle;
+    struct webscan_result *result;
+
 
     // First action: get loose
     drop_privileges();
@@ -122,5 +142,10 @@ int main(int argc, char *argv[]) {
     if (options.verbose) {
         fprintf(stderr, "Using device %s\n", dev);
     }
+
+    handle = open_pcap(dev);
+    result = webscan(handle, options.hostname, options.verbose);
+    printf("%s", webscan_format(result));
+
     return EXIT_SUCCESS;
 }
