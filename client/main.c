@@ -118,11 +118,22 @@ static pcap_t *open_pcap(char *dev) {
             errbuf);
 
     if (handle == NULL) {
-        fprintf(stderr, "Opening PCAP packet source failed: %s", errbuf);
+        fprintf(stderr, "Opening PCAP packet source failed: %s\n", errbuf);
         exit(EXIT_FAILURE);
     }
 
     return handle;
+}
+
+
+static void set_network_options(const char *dev, bpf_u_int32 *net,
+        bpf_u_int32 *mask) {
+    char errbuf[PCAP_ERRBUF_SIZE];
+
+    if (pcap_lookupnet(dev, net, mask, errbuf) == -1) {
+        fprintf(stderr, "Determining network options failed: %s\n", errbuf);
+        exit(EXIT_FAILURE);
+    }
 }
 
 
@@ -131,20 +142,22 @@ int main(int argc, char *argv[]) {
     struct ws_options options;
     pcap_t *handle;
     struct webscan_result *result;
+    bpf_u_int32 net;
+    bpf_u_int32 mask;
 
 
     // First action: get loose
     drop_privileges();
     options = parse_args(argc, argv);
 
-    fprintf(stderr, "Running against target \"%s\".\n", options.hostname);
     dev = lookup_device_name();
     if (options.verbose) {
         fprintf(stderr, "Using device %s\n", dev);
     }
 
+    set_network_options(dev, &net, &mask);
     handle = open_pcap(dev);
-    result = webscan(handle, options.hostname, options.verbose);
+    result = webscan(handle, net, mask, options.hostname, options.verbose);
     printf("%s", webscan_format(result));
 
     return EXIT_SUCCESS;
