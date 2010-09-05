@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 #include "webscan.h"
 #include "request.h"
 #include "analyze.h"
@@ -10,8 +11,12 @@ void webscan_format(struct webscan_result *result, char *dest,
     struct tm *ts;
     char uptime[80];
 
-    ts = localtime(&result->uptime);
-    strftime(uptime, sizeof(uptime), "%a %Y-%m-%d %H:%M:%S %Z", ts);
+    if (result->uptime != 0) {
+        ts = localtime(&result->uptime);
+        strftime(uptime, sizeof(uptime), "%a %Y-%m-%d %H:%M:%S %Z", ts);
+    } else {
+        strcpy(uptime, "UNKNOWN");
+    }
 
     snprintf(dest, dest_len, "Uptime:\t%s\n", uptime);
 }

@@ -11,7 +11,9 @@
 int make_request_socket(int port) {
     int socket_desc;
     struct sockaddr_in local_addr;
+    int opt = 1;
 
+    // XXX: Is a bzero necessary?
     local_addr.sin_family = AF_INET;
     local_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     local_addr.sin_port = htons(port);
@@ -20,9 +22,20 @@ int make_request_socket(int port) {
     if (socket_desc == -1) {
         goto failure;
     }
+    // Make sure we don't have to wait for 60 seconds between two runs.
+    // This could also be avoided by using randomized or sequential local port
+    // numbers, but this increases complexity massively because we have to keep
+    // track of the local port for the later filtering.
+    // By the way, the zombie socket is created when we start the connect() but
+    // don't receive an ACK. So, at some point in the future, this could become
+    // obsolete.
+    setsockopt(socket_desc, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
     if (bind(socket_desc, (struct sockaddr *) &local_addr,
                 sizeof(local_addr)) != 0) {
+
+        // Close the fd before!
+        close(socket_desc);
         socket_desc = -1;
         goto failure;
     }

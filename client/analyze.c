@@ -91,8 +91,9 @@ struct webscan_result *webscan_analyze_packet(const u_char *pcap_packet,
     vprint("Don't Fragment Bit:\t%d\n", df);
     vprint("Initial Window size:\t%d\n", window);
 
-    extract_timestamp_from_tcp(tcp, &timestamp);
-    result->uptime = timestamp;
+    if (extract_timestamp_from_tcp(tcp, &timestamp) == 1) {
+        result->uptime = timestamp / 100;
+    }
 
     return result;
 }
