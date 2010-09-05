@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <time.h>
 
 #include "webscan.h"
 #include "analyze.h"
@@ -92,7 +93,8 @@ struct webscan_result *webscan_analyze_packet(const u_char *pcap_packet,
     vprint("Initial Window size:\t%d\n", window);
 
     if (extract_timestamp_from_tcp(tcp, &timestamp) == 1) {
-        result->uptime = timestamp / 100;
+        vprint("Raw Timestamp:\t\t%ld\n", timestamp);
+        result->uptime = time(NULL) - (timestamp / 100);
     }
 
     return result;

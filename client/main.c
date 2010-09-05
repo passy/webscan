@@ -15,6 +15,7 @@
 struct ws_options {
     bool verbose;
     char hostname[WEBSCAN_TARGET_LENGTH];
+    char device[20];
 };
 
 
@@ -75,6 +76,7 @@ cleanup:
 static void print_usage(const char *prog_name) {
     printf("OVERVIEW: %s [OPTIONS] TARGET\n\n", prog_name);
     printf("OPTIONS:\n" \
+           "-d DEVICE\tUse this device to sniff. Autodetected by default."
            "-v\tTurn on verbose mode.\n"
            "-h\tShow this help screen.\n");
 }
@@ -83,11 +85,25 @@ static void print_usage(const char *prog_name) {
 static struct ws_options parse_args(int argc, char *argv[]) {
     char arg;
     struct ws_options options;
+    int tmp;
 
-    while ((arg = getopt(argc, argv, "hv")) != -1) {
+    options.device[0] = '\0';
+
+    while ((arg = getopt(argc, argv, "hvd:")) != -1) {
         switch (arg) {
             case 'v':
                 options.verbose = true;
+                break;
+            case 'd':
+                tmp = sizeof(options.device);
+                strncpy(options.device, optarg, tmp);
+                if (options.device[tmp - 1] != '\0') {
+                    // Truncate
+                    options.device[tmp - 1] = '\0';
+                }
+                break;
+            default:
+                fprintf(stderr, "Unknown option '%c' specified!", arg);
                 break;
         }
     }
@@ -150,9 +166,15 @@ int main(int argc, char *argv[]) {
     drop_privileges();
     options = parse_args(argc, argv);
 
-    dev = lookup_device_name();
-    if (options.verbose) {
-        fprintf(stderr, "Using device %s\n", dev);
+    // Only look up the device if not manually specified.
+    if (options.device[0] == '\0') {
+        dev = lookup_device_name();
+        if (options.verbose) {
+            fprintf(stderr, "Using device %s\n", dev);
+        }
+    } else {
+        // This is safe. parse_args takes care of it.
+        dev = options.device;
     }
 
     set_network_options(dev, &net, &mask);
