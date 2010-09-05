@@ -9,7 +9,8 @@
 #include "analyze.h"
 #include "sniff.h"
 
-static bool packet_is_dont_fragment(struct sniff_ip* ip) {
+
+static bool packet_is_dont_fragment(const struct sniff_ip* ip) {
     unsigned int offset;
 
     offset = ntohs(ip->ip_off);
@@ -23,15 +24,15 @@ static bool packet_is_dont_fragment(struct sniff_ip* ip) {
  * Logic stolen from nmap and sprint.
  * Note to myself: Be sure to use GPL!
  */
-int extract_timestamp_from_tcp(struct sniff_tcp *tcp, time_t *timestamp) {
+int extract_timestamp_from_tcp(const struct sniff_tcp *tcp, time_t *timestamp) {
 
-    unsigned char *p;
+    const unsigned char *p;
     int len = 0;
     int op;
     int oplen;
 
     /* first we find where the tcp options start ... */
-    p = ((unsigned char *)tcp) + 20;
+    p = ((const unsigned char *)tcp) + 20;
     len = 4 * tcp->th_offx2 - 20;
     while(len > 0 && *p != 0 /* TCPOPT_EOL */) {
         op = *p++;
@@ -62,8 +63,8 @@ struct webscan_result *webscan_analyze_packet(const u_char *pcap_packet,
         bool verbose) {
 
     struct webscan_result *result = malloc(sizeof(struct webscan_result));
-    struct sniff_ip *ip;
-    struct sniff_tcp *tcp;
+    const struct sniff_ip *ip;
+    const struct sniff_tcp *tcp;
     unsigned int size_ip;
     int ttl, window;
     time_t timestamp;
@@ -73,10 +74,10 @@ struct webscan_result *webscan_analyze_packet(const u_char *pcap_packet,
     bzero(result, sizeof(struct webscan_result));
 
     // The magic is described here: http://www.tcpdump.org/pcap.htm
-    ip = (struct sniff_ip*) (pcap_packet + SIZE_ETHERNET);
+    ip = (const struct sniff_ip*) (pcap_packet + SIZE_ETHERNET);
     size_ip = IP_HL(ip) * 4;
     // This one is pretty obvious. The TCP part starts right after the IP stuff.
-    tcp = (struct sniff_tcp*) (pcap_packet + SIZE_ETHERNET + size_ip);
+    tcp = (const struct sniff_tcp*) (pcap_packet + SIZE_ETHERNET + size_ip);
     ttl = ip->ip_ttl;
     window = ntohs(tcp->th_win);
 
