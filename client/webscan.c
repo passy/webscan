@@ -1,12 +1,21 @@
 #include <stdlib.h>
+#include <time.h>
 #include "webscan.h"
 #include "request.h"
 #include "analyze.h"
 
-const char *webscan_format(struct webscan_result *result) {
-    (void)result;
 
-    return "";
+const char *webscan_format(struct webscan_result *result) {
+    struct tm *ts;
+    char uptime[80];
+
+    char *str = malloc(500);
+
+    ts = localtime(&result->uptime);
+    strftime(uptime, sizeof(uptime), "%a %Y-%m-%d %H:%M:%S %Z", ts);
+
+    snprintf(str, 500, "Uptime:\t%s\n", uptime);
+    return str;
 }
 
 
@@ -86,4 +95,8 @@ struct webscan_result *webscan(pcap_t *handle, bpf_u_int32 net,
     } while (pcap_packet == NULL);
 
     return webscan_analyze_packet(pcap_packet, verbose);
+}
+
+void webscan_free_result(struct webscan_result *result) {
+    free(result);
 }

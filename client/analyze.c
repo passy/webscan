@@ -1,5 +1,7 @@
 #include <pcap.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 #include <arpa/inet.h>
 
 #include "webscan.h"
@@ -19,7 +21,7 @@ static bool packet_is_dont_fragment(struct sniff_ip* ip) {
 struct webscan_result *webscan_analyze_packet(const u_char *pcap_packet,
         bool verbose) {
 
-    struct webscan_result *result;
+    struct webscan_result *result = malloc(sizeof(struct webscan_result));
     struct sniff_ip *ip;
     struct sniff_tcp *tcp;
     unsigned int size_ip;
@@ -27,6 +29,7 @@ struct webscan_result *webscan_analyze_packet(const u_char *pcap_packet,
     bool df;
 
     vprint("Starting analysis\n");
+    bzero(result, sizeof(struct webscan_result));
 
     // The magic is described here: http://www.tcpdump.org/pcap.htm
     ip = (struct sniff_ip*) (pcap_packet + SIZE_ETHERNET);
@@ -47,6 +50,8 @@ struct webscan_result *webscan_analyze_packet(const u_char *pcap_packet,
     vprint("IP ID:\t\t\t%d\n", ntohs(ip->ip_id));
     vprint("Don't Fragment Bit:\t%d\n", df);
     vprint("Initial Window size:\t%d\n", window);
+
+    result->uptime = 0;
 
     return result;
 }

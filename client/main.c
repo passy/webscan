@@ -159,6 +159,8 @@ int main(int argc, char *argv[]) {
     handle = open_pcap(dev);
     result = webscan(handle, net, mask, options.hostname, options.verbose);
     printf("%s", webscan_format(result));
+    webscan_free_result(result);
+    pcap_close(handle);
 
     return EXIT_SUCCESS;
 }
