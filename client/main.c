@@ -144,6 +144,7 @@ int main(int argc, char *argv[]) {
     struct webscan_result *result;
     bpf_u_int32 net;
     bpf_u_int32 mask;
+    char result_str[500];
 
     // First action: get loose
     drop_privileges();
@@ -156,8 +157,11 @@ int main(int argc, char *argv[]) {
 
     set_network_options(dev, &net, &mask);
     handle = open_pcap(dev);
+
     result = webscan(handle, net, mask, options.hostname, options.verbose);
-    webscan_print(result);
+    webscan_format(result, result_str, sizeof(result_str));
+    printf("%s", result_str);
+
     webscan_free_result(result);
     pcap_close(handle);
 

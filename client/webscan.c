@@ -5,14 +5,15 @@
 #include "analyze.h"
 
 
-void webscan_print(struct webscan_result *result) {
+void webscan_format(struct webscan_result *result, char *dest,
+        size_t dest_len) {
     struct tm *ts;
     char uptime[80];
 
     ts = localtime(&result->uptime);
     strftime(uptime, sizeof(uptime), "%a %Y-%m-%d %H:%M:%S %Z", ts);
 
-    printf("Uptime:\t%s\n", uptime);
+    snprintf(dest, dest_len, "Uptime:\t%s\n", uptime);
 }
 
 

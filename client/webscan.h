@@ -10,7 +10,8 @@ struct webscan_result {
     time_t uptime;
 };
 
-void webscan_print(struct webscan_result *result);
+void webscan_format(struct webscan_result *result, char *dest,
+        size_t dest_len);
 struct webscan_result *webscan(pcap_t *handle,
         bpf_u_int32 net,
         bpf_u_int32 mask,
