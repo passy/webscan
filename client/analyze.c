@@ -18,6 +18,45 @@ static bool packet_is_dont_fragment(struct sniff_ip* ip) {
 }
 
 
+/**
+ * Logic stolen from nmap and sprint.
+ * Note to myself: Be sure to use GPL!
+ */
+int extract_timestamp_from_tcp(struct sniff_tcp *tcp, time_t *timestamp) {
+
+    unsigned char *p;
+    int len = 0;
+    int op;
+    int oplen;
+
+    /* first we find where the tcp options start ... */
+    p = ((unsigned char *)tcp) + 20;
+    len = 4 * tcp->th_offx2 - 20;
+    while(len > 0 && *p != 0 /* TCPOPT_EOL */) {
+        op = *p++;
+        if (op == 0 /* TCPOPT_EOL */) break;
+        if (op == 1 /* TCPOPT_NOP */) { len--; continue; }
+        oplen = *p++;   
+        if (oplen < 2) break; /* No infinite loops, please */
+        if (oplen > len) break; /* Not enough space */
+        if (op == 8 /* TCPOPT_TIMESTAMP */ && oplen == 10) {
+            /* Legitimate ts option */
+            if (timestamp) {
+                memcpy((char *) timestamp, p, 4);
+                *timestamp = ntohl(*timestamp);
+            }
+            return 1;
+        }
+        len -= oplen;
+        p += oplen - 2;
+    }
+
+    /* Didn't find anything */
+    if (timestamp) *timestamp = 0;
+    return 0;
+}
+
+
 struct webscan_result *webscan_analyze_packet(const u_char *pcap_packet,
         bool verbose) {
 
@@ -26,6 +65,7 @@ struct webscan_result *webscan_analyze_packet(const u_char *pcap_packet,
     struct sniff_tcp *tcp;
     unsigned int size_ip;
     int ttl, window;
+    time_t timestamp;
     bool df;
 
     vprint("Starting analysis\n");
@@ -51,7 +91,8 @@ struct webscan_result *webscan_analyze_packet(const u_char *pcap_packet,
     vprint("Don't Fragment Bit:\t%d\n", df);
     vprint("Initial Window size:\t%d\n", window);
 
-    result->uptime = 0;
+    extract_timestamp_from_tcp(tcp, &timestamp);
+    result->uptime = timestamp;
 
     return result;
 }
