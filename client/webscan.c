@@ -5,17 +5,14 @@
 #include "analyze.h"
 
 
-const char *webscan_format(struct webscan_result *result) {
+void webscan_print(struct webscan_result *result) {
     struct tm *ts;
     char uptime[80];
-
-    char *str = malloc(500);
 
     ts = localtime(&result->uptime);
     strftime(uptime, sizeof(uptime), "%a %Y-%m-%d %H:%M:%S %Z", ts);
 
-    snprintf(str, 500, "Uptime:\t%s\n", uptime);
-    return str;
+    printf("Uptime:\t%s\n", uptime);
 }
 
 
@@ -38,6 +35,8 @@ void make_filter(pcap_t *handle, char *target,
         pcap_perror(handle, "Setting filter failed");
         exit(EXIT_FAILURE);
     }
+
+    pcap_freecode(&filter);
 }
 
 /**

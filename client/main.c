@@ -145,7 +145,6 @@ int main(int argc, char *argv[]) {
     bpf_u_int32 net;
     bpf_u_int32 mask;
 
-
     // First action: get loose
     drop_privileges();
     options = parse_args(argc, argv);
@@ -158,7 +157,7 @@ int main(int argc, char *argv[]) {
     set_network_options(dev, &net, &mask);
     handle = open_pcap(dev);
     result = webscan(handle, net, mask, options.hostname, options.verbose);
-    printf("%s", webscan_format(result));
+    webscan_print(result);
     webscan_free_result(result);
     pcap_close(handle);
 
