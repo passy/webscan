@@ -4,6 +4,7 @@
 #include <pcap.h>
 #include <stdbool.h>
 
+#define vprint(...) if (verbose) fprintf(stderr, __VA_ARGS__)
 
 struct webscan_result {
 };
