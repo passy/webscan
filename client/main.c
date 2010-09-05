@@ -9,11 +9,13 @@
 #include <pcap.h>
 
 #include "options.h"
+#include "webscan.h"
 
 
 struct ws_options {
     bool verbose;
     char hostname[WEBSCAN_TARGET_LENGTH];
+    char device[20];
 };
 
 
@@ -74,6 +76,7 @@ cleanup:
 static void print_usage(const char *prog_name) {
     printf("OVERVIEW: %s [OPTIONS] TARGET\n\n", prog_name);
     printf("OPTIONS:\n" \
+           "-d DEVICE\tUse this device to sniff. Autodetected by default."
            "-v\tTurn on verbose mode.\n"
            "-h\tShow this help screen.\n");
 }
@@ -82,11 +85,25 @@ static void print_usage(const char *prog_name) {
 static struct ws_options parse_args(int argc, char *argv[]) {
     char arg;
     struct ws_options options;
+    int tmp;
 
-    while ((arg = getopt(argc, argv, "hv")) != -1) {
+    options.device[0] = '\0';
+
+    while ((arg = getopt(argc, argv, "hvd:")) != -1) {
         switch (arg) {
             case 'v':
                 options.verbose = true;
+                break;
+            case 'd':
+                tmp = sizeof(options.device);
+                strncpy(options.device, optarg, tmp);
+                if (options.device[tmp - 1] != '\0') {
+                    // Truncate
+                    options.device[tmp - 1] = '\0';
+                }
+                break;
+            default:
+                fprintf(stderr, "Unknown option '%c' specified!", arg);
                 break;
         }
     }
@@ -109,18 +126,66 @@ static struct ws_options parse_args(int argc, char *argv[]) {
 }
 
 
+static pcap_t *open_pcap(char *dev) {
+    pcap_t *handle;
+    char errbuf[PCAP_ERRBUF_SIZE];
+
+    handle = pcap_open_live(dev, BUFSIZ, false, WEBSCAN_PCAP_TIMEOUT, 
+            errbuf);
+
+    if (handle == NULL) {
+        fprintf(stderr, "Opening PCAP packet source failed: %s\n", errbuf);
+        exit(EXIT_FAILURE);
+    }
+
+    return handle;
+}
+
+
+static void set_network_options(const char *dev, bpf_u_int32 *net,
+        bpf_u_int32 *mask) {
+    char errbuf[PCAP_ERRBUF_SIZE];
+
+    if (pcap_lookupnet(dev, net, mask, errbuf) == -1) {
+        fprintf(stderr, "Determining network options failed: %s\n", errbuf);
+        exit(EXIT_FAILURE);
+    }
+}
+
+
 int main(int argc, char *argv[]) {
     char *dev;
     struct ws_options options;
+    pcap_t *handle;
+    struct webscan_result *result;
+    bpf_u_int32 net;
+    bpf_u_int32 mask;
+    char result_str[500];
 
     // First action: get loose
     drop_privileges();
     options = parse_args(argc, argv);
 
-    fprintf(stderr, "Running against target \"%s\".\n", options.hostname);
-    dev = lookup_device_name();
-    if (options.verbose) {
-        fprintf(stderr, "Using device %s\n", dev);
+    // Only look up the device if not manually specified.
+    if (options.device[0] == '\0') {
+        dev = lookup_device_name();
+        if (options.verbose) {
+            fprintf(stderr, "Using device %s\n", dev);
+        }
+    } else {
+        // This is safe. parse_args takes care of it.
+        dev = options.device;
     }
+
+    set_network_options(dev, &net, &mask);
+    handle = open_pcap(dev);
+
+    result = webscan(handle, net, mask, options.hostname, options.verbose);
+    webscan_format(result, result_str, sizeof(result_str));
+    printf("%s", result_str);
+
+    webscan_free_result(result);
+    pcap_close(handle);
+
     return EXIT_SUCCESS;
 }
