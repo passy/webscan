@@ -18,6 +18,8 @@ To compile, you need either gcc or clang installed and the `pcap` library and
 development headers present.
 `webscan` uses Linux capibilities so right now it's not portable.
 
+::
+
    git clone http://github.com/passy/webscan.git
    cd webscan
    cmake .
@@ -27,6 +29,8 @@ development headers present.
 
 How to use
 ----------
+
+::
 
    webscan -h
    sudo webscan new.rdrei.net
