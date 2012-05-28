@@ -42,7 +42,7 @@ What does not work
 Most things. `webscan` requires root privileges to perform raw socket
 operations. It does, however, drop the privileges as soon as possible except for
 the raw socket permissions. But I'm pretty sure I left a whole buch of security
-wholes open. Currently, it drops to UID/GID 1000 which is hard coded.
+holes open. Currently, it drops to UID/GID 1000 which is hard-coded.
 
 
 What does work
