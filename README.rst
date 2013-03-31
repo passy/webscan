@@ -1,7 +1,7 @@
 webscan
 =======
 
-`webscan` ought to be a active network scanner aimed to analyze information
+`webscan` ought to be an active network scanner aimed to analyze information
 retrieved from tcp headers after a SYN connect.
 
 What's actually working is getting an approximate uptime of a given host,
